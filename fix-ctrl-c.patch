@@ -1,0 +1,35 @@
+From cf2390639a3bed5d7293e02de45cc7f704882efd Mon Sep 17 00:00:00 2001
+From: Kacper Topolski <kacpertopolski@op.pl>
+Date: Mon, 16 Jun 2025 19:20:37 +0200
+Subject: [PATCH] Fix CTRL+C/V behaviour
+
+---
+ src/vte.cc | 15 +++++++++++++++
+ 1 file changed, 15 insertions(+)
+
+diff --git a/src/vte.cc b/src/vte.cc
+index 3fc4d8fae..b02206da7 100644
+--- a/src/vte.cc
++++ b/src/vte.cc
+@@ -5273,6 +5273,21 @@ Terminal::widget_key_press(vte::platform::KeyEvent const& event)
+ 		}
+ 	}
+
++        /* Hacky check for CTRL+C */
++        if (!handled && (event.matches(GDK_KEY_c, GDK_CONTROL_MASK) || event.matches(GDK_KEY_C, GDK_CONTROL_MASK))) {
++                if (vte_terminal_get_has_selection(m_terminal)) {
++                        vte_terminal_copy_clipboard_format(m_terminal, VTE_FORMAT_TEXT);
++                        handled = true;
++                }
++        }
++
++        /* Hacky check for CTRL+V */
++        if (!handled && (event.matches(GDK_KEY_v, GDK_CONTROL_MASK) || event.matches(GDK_KEY_V, GDK_CONTROL_MASK))) {
++                vte_terminal_paste_clipboard(m_terminal);
++                vte_terminal_unselect_all(m_terminal);
++                handled = true;
++        }
++
+         // Try showing the context menu
+         if (!handled &&
+             (event.matches(GDK_KEY_Menu, 0) ||
